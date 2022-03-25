@@ -8,6 +8,8 @@
 #include "stb_image_write.h"
 
 #include <iostream>
+#include <thread>
+#include <mutex>
 
 #include "rtweekend.h"
 
@@ -16,6 +18,7 @@
 #include "hittable_list.h"
 #include "color.h"
 #include "material.h"
+
 hittable_list random_scene() {
     hittable_list world;
 
@@ -85,6 +88,35 @@ color ray_color(const ray& r, const hittable& world, int depth) {
     return (1.0 - t) * color(1.0, 1.0, 1.0) + t * color(0.5, 0.7, 1.0);
 }
 
+std::mutex _lock;
+int current_iteration = 0;
+
+void render(int j_start, int j_end, int height, int width, int samples, int max_depth,
+            hittable_list world, camera cam, unsigned char* (&data) , int data_pos) {
+    int current = data_pos;
+
+    for (int j = j_start; j >= j_end; --j) {
+        _lock.lock();
+        ++current_iteration;
+        std::cerr << "\rScanlines remaining: " << current_iteration << ' ' << std::flush;
+        _lock.unlock();
+
+        for (int i = 0; i < width; ++i) {
+            color pixel_color(0, 0, 0);
+
+            for (int s = 0; s < samples; ++s) {
+                auto u = (i + random_double()) / (width - 1);
+                auto v = (j + random_double()) / (height - 1);
+                ray r = cam.get_ray(u, v);
+                pixel_color += ray_color(r, world, max_depth);
+            }
+
+            write_color(data, current, pixel_color, samples);
+            current += 3;
+        }
+    }
+}
+
 int main() {
 
     // Image
@@ -92,13 +124,12 @@ int main() {
     const auto aspect_ratio = 3.0 / 2.0;
     const int image_width = 1200;
     const int image_height = static_cast<int>(image_width / aspect_ratio);
-    const int samples_per_pixel = 500;
-    const int max_depth = 50;
+    const int samples_per_pixel = 250;
+    const int max_depth = 25;
 
     int comp = 3;
     unsigned char* image_data = new unsigned char[image_width * image_height * comp];
     int iData = 0;
-    int& current = iData;
 
     // World
     auto world = random_scene();
@@ -113,23 +144,46 @@ int main() {
     camera cam(lookfrom, lookat, vup, 20, aspect_ratio, aperture, dist_to_focus);
 
     // Render
+    int concurrency = std::thread::hardware_concurrency();
 
-    for (int j = image_height - 1; j >= 0; --j) {
-        std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
+    if (concurrency == 0) concurrency = 2;
 
-        for (int i = 0; i < image_width; ++i) {
-            color pixel_color(0, 0, 0);
+    std::vector<std::thread> threads;
+    int step_row = image_height / concurrency;
 
-            for (int s = 0; s < samples_per_pixel; ++s) {
-                auto u = (i + random_double()) / (image_width - 1);
-                auto v = (j + random_double()) / (image_height - 1);
-                ray r = cam.get_ray(u, v);
-                pixel_color += ray_color(r, world, max_depth);
-            }
+    for (int i = 0; i < concurrency; ++i) {
+        int current_row = image_height - step_row * i - 1;
 
-            write_color(image_data, current, pixel_color, samples_per_pixel);
-        }
+        std::thread thread(render, current_row, current_row - step_row + 1, image_height,
+            image_width, samples_per_pixel, max_depth, world, cam, std::ref(image_data),
+            i * step_row * image_width * 3);
+        
+        threads.push_back(std::move(thread));
     }
+
+    for (std::thread& thread : threads) {
+        if (thread.joinable())
+            thread.join();
+    }
+
+    //render(image_height - 1, 0, image_height, image_width, samples_per_pixel, max_depth,world, cam, std::ref(image_data), 0);
+    //for (int j = image_height - 1; j >= 0; --j) {
+    //    std::cerr << "\rScanlines remaining: " << j << ' ' << std::flush;
+
+    //    for (int i = 0; i < image_width; ++i) {
+    //        color pixel_color(0, 0, 0);
+
+    //        for (int s = 0; s < samples_per_pixel; ++s) {
+    //            auto u = (i + random_double()) / (image_width - 1);
+    //            auto v = (j + random_double()) / (image_height - 1);
+    //            ray r = cam.get_ray(u, v);
+    //            pixel_color += ray_color(r, world, max_depth);
+    //        }
+
+    //        write_color(image_data, iData, pixel_color, samples_per_pixel);
+    //        iData += 3;
+    //    }
+    //}
 
     stbi_write_png("image.png", image_width, image_height, comp, image_data, image_width * comp);
 
