@@ -10,14 +10,14 @@ use vec3::{unit_vector, Point3, Vec3};
 
 pub fn render(width: i32) -> Result<(), Box<dyn Error>> {
     // Calculate the image height, and ensure that it's at least 1.
-    let aspect_ratio = 16.0 / 9.0; // 1,777777778 - for width = 400
-    let height = (width as f64 / aspect_ratio) as i32; // 224,999999972
-    let height = if height < 1 { 1 } else { height }; // 225
+    let aspect_ratio = 16.0 / 9.0;
+    let height = (width as f64 / aspect_ratio) as i32;
+    let height = if height < 1 { 1 } else { height };
 
     // Camera
     let focal_length = 1.0;
     let viewport_height = 2.0;
-    let viewport_width = viewport_height * (width as f64 / height as f64); // 3,555555556
+    let viewport_width = viewport_height * (width as f64 / height as f64);
     let camera_center = Point3::new(0.0, 0.0, 0.0);
 
     // Calculate the vectors across the horizontal and down the vertical viewport edges.
@@ -29,10 +29,10 @@ pub fn render(width: i32) -> Result<(), Box<dyn Error>> {
     let pixel_delta_v = &viewport_v / (height as f64);
 
     // Calculate the location of the upper left pixel.
-    let viewport_upper_left = &camera_center        // 0 0 0
-        - Vec3::new(0.0, 0.0, focal_length)     // 0 0 2
-        - viewport_u / 2.0                                 // 1.7777 0 0
-        - viewport_v / 2.0;                                 // 0 -1 0
+    let viewport_upper_left = &camera_center
+        - Vec3::new(0.0, 0.0, focal_length)
+        - viewport_u / 2.0
+        - viewport_v / 2.0;
 
     let pixel00_loc = viewport_upper_left + 0.5 * (&pixel_delta_u + &pixel_delta_v);
 
