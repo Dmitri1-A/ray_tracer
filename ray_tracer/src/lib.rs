@@ -1,12 +1,14 @@
 use std::{error::Error, io::{self, Write}};
 
-pub mod vec3;
 pub mod color;
+pub mod hittable;
+pub mod sphere;
+pub mod vec3;
 pub mod ray;
 
 use color::{write_color, Color};
 use ray::Ray;
-use vec3::{unit_vector, Point3, Vec3};
+use vec3::{dot, unit_vector, Dot, Point3, Vec3};
 
 pub fn render(width: i32) -> Result<(), Box<dyn Error>> {
     // Calculate the image height, and ensure that it's at least 1.
@@ -61,7 +63,28 @@ pub fn render(width: i32) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+fn hit_sphere(center: &Point3, radius: Dot, r: &Ray) -> Dot {
+    let oc = center - r.origin();
+    let a = r.direction().length_squared();
+    let h = dot(r.direction(), &oc);
+    let c = oc.length_squared() - radius * radius;
+    let discriminant = h * h - a * c;
+
+    if discriminant < 0.0 {
+        -1.0
+    } else {
+        (h - discriminant.sqrt()) / a
+    }
+}
+
 fn ray_color(r: &Ray) -> Color {
+    let t = hit_sphere(&Point3::new(0.0, 0.0, -1.0), 0.5, r);
+
+    if t > 0.0 {
+        let n = unit_vector(&(r.at(t) - Vec3::new(0.0, 0.0, -1.0)));
+        return 0.5 * Color::new(n.x() + 1.0, n.y() + 1.0 , n.z() + 1.0)
+    }
+
     let unit_direction = unit_vector(r.direction());
     let a = 0.5 * (unit_direction.y() + 1.0);
     (1.0 - a) * Color::new(1.0, 1.0, 1.0) + a * Color::new(0.5, 0.7, 1.0)
