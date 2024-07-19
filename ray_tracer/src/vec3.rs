@@ -4,7 +4,7 @@ pub type Dot = f64;
 
 pub type Point3 = Vec3;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Vec3 {
     pub e: [Dot; 3],
 }
@@ -47,6 +47,14 @@ impl Neg for Vec3 {
 
     fn neg(self) -> Self::Output {
         Self { e: [-self[0], -self[1], -self[2]]}
+    }
+}
+
+impl Neg for &Vec3 {
+    type Output = Vec3;
+
+    fn neg(self) -> Self::Output {
+        Self::Output { e: [-self[0], -self[1], -self[2]]}
     }
 }
 
