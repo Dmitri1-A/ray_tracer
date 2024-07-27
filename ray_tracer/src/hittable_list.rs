@@ -1,4 +1,4 @@
-use crate::{hittable::{HitRecord, Hittable}, ray::Ray, vec3::Dot};
+use crate::{hittable::{HitRecord, Hittable}, interval::Interval, ray::Ray};
 
 pub struct HittableList {
     objects: Vec<Box<dyn Hittable>>, // может надо Rc
@@ -23,18 +23,17 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit<'a>(&self, r: &Ray, ray_tmin: Dot, ray_tmax: Dot, rec: &'a mut HitRecord) -> (bool, &'a mut HitRecord) {
-        let temp_rec = rec;
+    fn hit(&self, r: &Ray, ray_t: &Interval, rec: &mut HitRecord) -> bool {
         let mut hit_anything = false;
-        let mut closest_so_far = ray_tmax;
+        let mut closest_so_far = ray_t.max;
 
         for object in &self.objects {
-            if let (true, temp_rec) = object.hit(r, ray_tmin, closest_so_far, temp_rec) {
+            if object.hit(r, &Interval::new(ray_t.min, closest_so_far), rec) {
                 hit_anything = true;
-                closest_so_far = temp_rec.t;
+                closest_so_far = rec.t;
             }
         }
 
-        (hit_anything, temp_rec)
+        hit_anything
     }
 }

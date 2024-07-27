@@ -1,4 +1,4 @@
-use crate::{ray::Ray, vec3::{dot, Dot, Point3, Vec3}};
+use crate::{interval::Interval, ray::Ray, vec3::{dot, Dot, Point3, Vec3}};
 
 pub struct HitRecord {
     pub p: Point3,
@@ -24,5 +24,6 @@ impl HitRecord {
 }
 
 pub trait Hittable {
-    fn hit<'a>(&self, r: &Ray, ray_tmin: Dot, ray_tmax: Dot, rec: &'a mut HitRecord) -> (bool, &'a mut HitRecord);
+    #[allow(unused_variables)]
+    fn hit(&self, r: &Ray, ray_t: &Interval, rec: &mut HitRecord) -> bool { false }
 }

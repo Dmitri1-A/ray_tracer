@@ -7,10 +7,12 @@ pub mod vec3;
 pub mod ray;
 pub mod hittable_list;
 pub mod rtweekend;
+pub mod interval;
 
 use color::{write_color, Color};
 use hittable::{HitRecord, Hittable};
 use hittable_list::HittableList;
+use interval::Interval;
 use ray::Ray;
 use rtweekend::INFINITY;
 use sphere::Sphere;
@@ -81,7 +83,7 @@ pub fn render(width: i32) -> Result<(), Box<dyn Error>> {
 
 fn ray_color(r: &Ray, world: &dyn Hittable) -> Color {
     let rec = &mut HitRecord::new();
-    if let (true, rec) = world.hit(r, 0.0, INFINITY, rec) {
+    if world.hit(r, &Interval::new(0.0, INFINITY), rec) {
         return 0.5 * (&rec.normal + Color::new(1.0, 1.0, 1.0))
     }
 
