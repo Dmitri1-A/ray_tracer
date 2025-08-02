@@ -7,9 +7,9 @@ pub struct HittableList {
 impl HittableList {
     pub fn make_empty() -> Self { Self { objects: vec![] } }
 
-    pub fn new(object: Box<dyn Hittable>) -> Self {
+    pub fn new() -> Self {
         Self {
-            objects: vec![object]
+            objects: vec![]
         }
     }
 
